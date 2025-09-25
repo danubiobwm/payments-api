@@ -9,7 +9,7 @@ Content-Type: application/json
   "paymentMethod": "PIX"
 }
 
----
+###
 
 ### 2) Create CREDIT_CARD payment
 POST http://localhost:3000/api/payment
@@ -22,27 +22,27 @@ Content-Type: application/json
   "paymentMethod": "CREDIT_CARD"
 }
 
----
+###
 
 ### 3) Get payment by id
-GET http://localhost:3000/api/payment/<PAYMENT_ID>
+GET http://localhost:3000/api/payment/{{paymentId}}
 
----
+###
 
 ### 4) List payments by CPF
 GET http://localhost:3000/api/payment?cpf=11122233396
 
----
+###
 
 ### 5) Update payment status
-PUT http://localhost:3000/api/payment/<PAYMENT_ID>
+PUT http://localhost:3000/api/payment/{{paymentId}}
 Content-Type: application/json
 
 {
   "status": "PAID"
 }
 
----
+###
 
 ### 6) Simulate Mercado Pago webhook
 POST http://localhost:3000/api/payment/mercadopago/webhook
@@ -50,6 +50,6 @@ Content-Type: application/json
 
 {
   "data": {
-    "id": "PAYMENT_ID_FROM_MP"
+      "id": "{{mpPaymentId}}"
   }
 }
