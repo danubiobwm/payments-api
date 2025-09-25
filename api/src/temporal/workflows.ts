@@ -1,9 +1,10 @@
 import { Injectable, Inject } from '@nestjs/common';
+import type  { IPaymentRepository } from '../domain/repositories/payment.repository.interface';
+import { MercadopagoService } from '../infra/mercadopago/mercadopago.service';
+import { PaymentMethod } from '../domain/enums/payment-method.enum';
+import { PaymentStatus } from '../domain/enums/payment-status.enum';
 
-import { PaymentMethod } from '../../domain/enums/payment-method.enum';
-import { PaymentStatus } from '../../domain/enums/payment-status.enum';
-import { MercadopagoService } from '../../infra/mercadopago/mercadopago.service';
-import type { IPaymentRepository } from '../../domain/repositories/payment.repository.interface';
+
 
 interface CreatePaymentDto {
   cpf: string;
