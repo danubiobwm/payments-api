@@ -1,9 +1,8 @@
-import { IsNotEmpty, IsNumber, IsEnum, IsString, Matches } from 'class-validator';
-import { Payment } from '../../domain/entities/payment.entity';
+import { IsEnum, IsNumber, IsPositive, IsString, Matches } from 'class-validator';
+import { PaymentMethod } from '../../domain/enums/payment-method.enum';
 
 export class CreatePaymentDto {
   @IsString()
-  @IsNotEmpty()
   @Matches(/^\d{11}$/, { message: 'CPF must be 11 digits' })
   cpf: string;
 
@@ -11,8 +10,9 @@ export class CreatePaymentDto {
   description: string;
 
   @IsNumber()
+  @IsPositive()
   amount: number;
 
-  @IsEnum(Payment)
-  paymentMethod: Payment;
+  @IsEnum(PaymentMethod)
+  paymentMethod: PaymentMethod;
 }

@@ -1,41 +1,30 @@
-import { Injectable, Inject } from '@nestjs/common';
-import type  { IPaymentRepository } from '../domain/repositories/payment.repository.interface';
-import { MercadopagoService } from '../infra/mercadopago/mercadopago.service';
-import { PaymentMethod } from '../domain/enums/payment-method.enum';
-import { PaymentStatus } from '../domain/enums/payment-status.enum';
+import { proxyActivities, defineSignal, setHandler } from '@temporalio/workflow';
+import type * as activities from './activities';
 
+const { registerPaymentActivity, createPreferenceActivity, updatePaymentStatusActivity } = proxyActivities<typeof activities>({
+  startToCloseTimeout: '1 minute',
+});
 
+export const notifySignal = defineSignal<[any]>('notify');
 
-interface CreatePaymentDto {
-  cpf: string;
-  description: string;
-  amount: number;
-  paymentMethod: PaymentMethod;
-}
+export async function paymentWorkflow(input: { id: string; cpf: string; description: string; amount: number; paymentMethod: string }) {
+  await registerPaymentActivity(input);
 
-@Injectable()
-export class CreatePaymentUseCase {
-  constructor(
-    @Inject('IPaymentRepository')
-    private readonly paymentRepository: IPaymentRepository,
-    private readonly mercadopagoService: MercadopagoService,
-  ) {}
+  if (input.paymentMethod === 'CREDIT_CARD') {
+    const pref = await createPreferenceActivity(input);
 
-  async execute(dto: CreatePaymentDto) {
-    const payment = await this.paymentRepository.create({
-      cpf: dto.cpf,
-      description: dto.description,
-      amount: dto.amount,
-      paymentMethod: dto.paymentMethod,
-      status: PaymentStatus.PENDING,
+    let result: any = null;
+    setHandler(notifySignal, (payload: any) => {
+      result = payload;
     });
 
-    if (dto.paymentMethod === PaymentMethod.CREDIT_CARD) {
-      const preference = await this.mercadopagoService.createPreference(payment);
-      await this.paymentRepository.setExternalId(payment.id, preference.id);
-      return { payment, preference };
+    while (result === null) {
+      await new Promise((r) => setTimeout(r, 1000));
     }
 
-    return { payment };
+    await updatePaymentStatusActivity({ id: input.id, status: result.status });
+    return result;
   }
+
+  return { status: 'PENDING' };
 }
