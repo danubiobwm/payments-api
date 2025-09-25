@@ -1,24 +1,82 @@
 import { PaymentMethod } from '../../../domain/enums/payment-method.enum';
-import { updatePaymentStatusActivity } from '../../../temporal/activities';
+import { PaymentStatus } from '../../../domain/enums/payment-status.enum';
 import { CreatePaymentUseCase } from '../CreatePaymentUseCase';
 
-
 describe('CreatePaymentUseCase (unit)', () => {
-  it('should create a PIX payment', async () => {
-    const mockRepo: any = {
-      create: jest.fn().mockResolvedValue({
-        id: 'id-1',
-        cpf: '11122233396',
-        description: 'desc',
-        amount: 10,
-        paymentMethod: PaymentMethod.PIX,
-        status: updatePaymentStatusActivity.PENDING,
-      }),
+  let mockRepo: any;
+  let mockMpService: any;
+  let useCase: CreatePaymentUseCase;
+
+  beforeEach(() => {
+    mockRepo = {
+      create: jest.fn(),
+      setExternalId: jest.fn(),
     };
-    const mockMp: any = {};
-    const uc = new CreatePaymentUseCase(mockRepo, mockMp);
-    const res = await uc.execute({ cpf: '11122233396', description: 'desc', amount: 10, paymentMethod: PaymentMethod.PIX });
-    expect(res.payment).toBeDefined();
-    expect(res.payment.status).toBe(PaymentStatus.PENDING);
+    mockMpService = {
+      createPreference: jest.fn(),
+    };
+    useCase = new CreatePaymentUseCase(mockRepo, mockMpService);
+  });
+
+  it('should create a PIX payment and return the payment object', async () => {
+    const mockPayment = {
+      id: 'mock-id-1',
+      cpf: '11122233396',
+      description: 'Test PIX',
+      amount: 150.50,
+      paymentMethod: PaymentMethod.PIX,
+      status: PaymentStatus.PENDING,
+    };
+    mockRepo.create.mockResolvedValue(mockPayment);
+
+    const dto = {
+      cpf: '11122233396',
+      description: 'Test PIX',
+      amount: 150.50,
+      paymentMethod: PaymentMethod.PIX,
+    };
+    const result = await useCase.execute(dto);
+
+    expect(mockRepo.create).toHaveBeenCalledWith(expect.objectContaining({
+      cpf: dto.cpf,
+      paymentMethod: PaymentMethod.PIX,
+      status: PaymentStatus.PENDING,
+    }));
+    expect(mockMpService.createPreference).not.toHaveBeenCalled();
+    expect(result.payment).toEqual(mockPayment);
+    expect(result.preference).toBeUndefined();
+  });
+
+  it('should create a CREDIT_CARD payment and a Mercado Pago preference', async () => {
+    const mockPayment = {
+      id: 'mock-id-2',
+      cpf: '11122233396',
+      description: 'Test CC',
+      amount: 250.00,
+      paymentMethod: PaymentMethod.CREDIT_CARD,
+      status: PaymentStatus.PENDING,
+    };
+    const mockPreference = { id: 'mp-pref-id-123', status: 'pending' };
+
+    mockRepo.create.mockResolvedValue(mockPayment);
+    mockMpService.createPreference.mockResolvedValue(mockPreference);
+
+    const dto = {
+      cpf: '11122233396',
+      description: 'Test CC',
+      amount: 250.00,
+      paymentMethod: PaymentMethod.CREDIT_CARD,
+    };
+    const result = await useCase.execute(dto);
+
+    expect(mockRepo.create).toHaveBeenCalledWith(expect.objectContaining({
+      cpf: dto.cpf,
+      paymentMethod: PaymentMethod.CREDIT_CARD,
+      status: PaymentStatus.PENDING,
+    }));
+    expect(mockMpService.createPreference).toHaveBeenCalledWith(mockPayment);
+    expect(mockRepo.setExternalId).toHaveBeenCalledWith(mockPayment.id, mockPreference.id);
+    expect(result.payment).toEqual(mockPayment);
+    expect(result.preference).toEqual(mockPreference);
   });
 });

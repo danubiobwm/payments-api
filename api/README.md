@@ -15,3 +15,6 @@
 - Necessita servidor Temporal rodando (`docker-compose` ou Temporal Cloud).
 - Rodar worker com `@temporalio/worker` registrando `activities.ts`.
 - Workflow principal: `paymentWorkflow`.
+
+### Swagger
+http://localhost:3000/api/docs
